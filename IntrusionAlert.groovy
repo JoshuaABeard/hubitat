@@ -4,12 +4,12 @@
  */
 
 definition(
-    name: "Intrusion Alert",
+    name: "Door and Window Alerts",
     namespace: "jbeard",
     author: "Joshua Beard",
     description: "This was designed to announce if any contacts are open while a switch is on",
     category: "Convenience",
-    version: "1.0.2",
+    version: "1.1.0",
     iconUrl: "",
     iconX2Url: "",
     iconX3Url: ""
@@ -26,12 +26,18 @@ preferences {
 
         section()
         {
-            input "enableSwitch", "capability.switch", title: "Select Enable Switch", required: true, multiple: false
+            input "enableSwitch", "capability.switch", title: "Select Control Switch", required: true, multiple: false
         }
 
         section()
         {
-            input "sensors", "capability.contactSensor", title: "Contact Sensor(s) to Check", required: true, multiple: true
+            input "openSensors", "capability.contactSensor", title: "Contact Sensor(s) to Notify on Open", required: true, multiple: true
+            input "repeatDelay", "number", title: "Re-Check Delay (Seconds - 0 to Disable)", description: "0...9999", required: true, defaultValue: 0
+        }
+
+        section()
+        {
+            input "closeSensors", "capability.contactSensor", title: "Contact Sensor(s) to Notify on Close", required: false, multiple: true
         }
 
         section()
@@ -39,10 +45,6 @@ preferences {
             input "notification", "capability.speechSynthesis", title: "Choose Notification Device(s)", required: true, multiple: true
         }
 
-        section()
-        {
-            input "repeatDelay", "number", title: "Re-Check Delay (Seconds - 0 to Disable)", description: "0...9999", required: true, defaultValue: 0
-        }
     }
 }
 
@@ -61,22 +63,44 @@ def initialize() {
     unsubscribe()
 
     subscribe(enableSwitch, "switch", notificationHandler)
-    subscribe(sensors, "contact", notificationHandler)
+    subscribe(openSensors, "contact.open", openNotificationHandler)
 
-    checkSensors()
+    subscribe(closeSensors, "contact.closed", closeNotificationHandler)
+
+    checkOpenSensors()
 }
 
 def notificationHandler(evt) {
-    checkSensors()
+    unschedule(checkOpenSensors)
+    checkOpenSensors()
 }
 
-def checkSensors()
-{
-    unschedule()
-
+def openNotificationHandler(evt) {
     if(enableSwitch.currentValue("switch") == 'on')
     {
-        def openDevices = sensors.findAll { it?.currentValue("contact") == 'open' }
+        def newmsg = "${evt.displayName} is open"
+        notification.speak(newmsg)
+    
+        if(repeatDelay != 0)
+        {
+            runIn(repeatDelay, checkOpenSensors)
+        }
+    }
+}
+
+def closeNotificationHandler(evt) {
+    if(enableSwitch.currentValue("switch") == 'on')
+    {
+        def newmsg = "${evt.displayName} is closed"
+        notification.speak(newmsg)
+    }
+}
+
+def checkOpenSensors()
+{
+    if(enableSwitch.currentValue("switch") == 'on')
+    {
+        def openDevices = openSensors.findAll { it?.currentValue("contact") == 'open' }
         for(device in openDevices) 
         {
             def newmsg = "${device} is open"
@@ -85,7 +109,7 @@ def checkSensors()
 
         if(openDevices && repeatDelay != 0)
         {
-            runIn(repeatDelay,notificationHandler)
+            runIn(repeatDelay, checkOpenSensors)
         }
     }
 }
