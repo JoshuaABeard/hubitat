@@ -9,10 +9,10 @@ definition(
     author: "Joshua Beard",
     description: "This was designed to announce if any contacts are open or becomes opened when a switch turns on",
     category: "",
-
+    version: "1.0.1",
     iconUrl: "",
     iconX2Url: "",
-    iconX3Url: "",
+    iconX3Url: ""
 )
 
 
@@ -40,23 +40,41 @@ preferences {
 
     section()
     {
-        input "repeatDelay", "number", title: "Repeat delay before rechecking (Seconds - enter 0 to disable)", description: "0...9999", required: true
+        input "repeatDelay", "number", title: "Repeat delay before re-checking (Seconds - 0 to disable)", description: "0...9999", required: true, defaultValue: 0
     }
 }
 
 def installed() {
+    initialize()
+}
+
+def updated() {
+    initialize()
+}
+
+def initialize() {
     log.info "Initialised with settings: ${settings}"
+
+    unschedule()
+    unsubscribe()
 
     subscribe(enableSwitch, "switch", notificationHandler)
     subscribe(sensors, "contact", notificationHandler)
+
+    checkSensors()
 }
 
 def notificationHandler(evt) {
+    checkSensors()
+}
+
+def checkSensors()
+{
     unschedule()
 
     if(enableSwitch.currentValue("switch") == 'on')
     {
-        def openDevices = sensors.findAll { it?.latestValue("contact") == 'open' }
+        def openDevices = sensors.findAll { it?.currentValue("contact") == 'open' }
         for(device in openDevices) 
         {
             def newmsg = "${device} is open"
