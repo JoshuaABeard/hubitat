@@ -17,26 +17,32 @@ definition(
 
 
 preferences {
-    page(name: "mainPage", title: "", uninstall: true, install: true)
-    {
-        section()
-        {
+    page(name: "mainPage", title: "", uninstall: true, install: true) {
+        section() {
             paragraph "Manages Lights in a Room"
         }
 
-        section()
-        {
+        section("Lights:") {
             input "lights", "capability.light", title: "Lights to Control", required: true, multiple: true
+            input "level", "number", title: "Level", description: "1...100", required: true, defaultValue: 100
+            input "colorTemperature", "number", title: "Color Temperature (Kelvin)", description: "2000...65000", required: true, defaultValue: 2700
+            input "warningDimBy", "number", title: "Warning Dim By (Level)", description: "0...99", required: true, defaultValue: 30
+            input "warningTimeout", "number", title: "Warning Timeout (Seconds)", description: "0...9999", required: true, defaultValue: 10
         }
 
-        section()
-        {
-            input "motionSensors", "capability.motionSensor", title: "Motion Sensor(s)", required: true, multiple: true
-            input "timeout", "number", title: "Turn Lights Off After (Seconds)", description: "0...9999", required: true, defaultValue: 60
+        section("Motion:") {
+            input "motionSensors", "capability.motionSensor", title: "Sensor(s)", required: true, multiple: true
+            input "motionTimeout", "number", title: "timeout (Seconds)", description: "0...9999", required: true, defaultValue: 60
         }
 
-        section()
-        {
+        section("Night Lights:") {
+            input "nightLights", "capability.light", title: "Lights to Control", required: true, multiple: true
+            input "nightLevel", "number", title: "Level", description: "1...100", required: true, defaultValue: 100
+            input "nightColorTemperature", "number", title: "Color Temperature", description: "2000...65000", required: true, defaultValue: 2700
+             input "nightTimeOnly", "bool", title: "Between Sunset and Sunrise", defaultValue: true
+        }
+
+        section("Sleep Mode:") {
             input "sleepSwitch", "capability.switch", title: "Sleep Switch", required: false, multiple: false
         }
     }
@@ -53,70 +59,144 @@ def updated() {
 def initialize() {
     log.info "Initialised with settings: ${settings}"
 
-    state.lightsOn = false
+    state.lightsState = 'off' // 'off', 'on', 'warn', 'sleeping'
+    state.preWarnLevel = 100
+    state.motionActive = false
 
     unschedule()
     unsubscribe()
 
     subscribe(motionSensors, "motion", motionHandler)
-    //subscribe(openSensors, "contact.open", openNotificationHandler)
+    subscribe(sleepSwitch, "switch", sleepHandler)
 
-    //subscribe(closeSensors, "contact.closed", closeNotificationHandler)
+    subscribe(location, "sunrise", sunriseEventHandler)
+    subscribe(location, "sunset", sunsetEventHandler)
+}
 
-    //checkOpenSensors()
+def sunriseEventHandler(evt) {
+    if (state.lightsState == 'sleeping') {
+        turnOffNightLights()
+    }
+}
+
+def sunsetEventHandler(evt) {
+    if (state.lightsState == 'sleeping') {
+        turnOnNightLights()
+    }
+}
+
+def sleepHandler(evt) {
+    if (evt.currentValue("switch") == 'on') {
+        turnOffLights()
+        state.lightsState = 'sleeping'
+
+        turnOnNightLights()
+    }
+    else {
+        state.lightsState = 'off'
+        turnOffNightLights()
+        motionMonitor()
+    }
 }
 
 def motionHandler(evt) {
-    if (state.lightsOn == false)
-    {
-        lights.on()
-        state.lightsOn = true
+    def activeDevices = motionSensors.findAll { it?.currentValue("motion") == 'active' }
+    if (activeDevices) {
+        state.motionActive = true
+    }
+    else {
+        state.motionActive = false
     }
 
-    runIn(timeout, turnOffLights)
+    if (state.lightsState != 'sleeping') {
+        motionMonitor()
+    }
 }
 
-def turnOffLights()
-{
-    lights.off()
-    state.lightsOn = false
+def motionMonitor() {
+    if (state.motionActive) {
+        turnOnLights()
+    }
+    else
+    {
+        if (state.lightsState != 'off')
+        {
+            if (warningTimeout == 0) {
+                runIn(motionTimeout, turnOffLights)
+            }
+            else {
+                runIn(motionTimeout, warnLights)
+            }
+        }
+    }
 }
 
-// def openNotificationHandler(evt) {
-//     if(enableSwitch.currentValue("switch") == 'on')
-//     {
-//         def newmsg = "${evt.displayName} is open"
-//         notification.speak(newmsg)
+def warnLights() {
+    if (state.lightsState == 'on')
+    {
+        state.lightsState = 'warn'
+
+        for(light in lights) {
+            def level = light.currentValue("level")
+            def newLevel = level - warningDimBy
+            if (newLevel < 0) {
+                newLevel = 1
+            }
+
+            state.preWarnLevel = level
+            light.setLevel(newLevel)
+        }
+
+        runIn(warningTimeout, turnOffLights)
+    }
+}
+
+def turnOnLights() {
+    if (state.lightsState == 'off') {
+        unsubscribe(turnOffLights)
+        unsubscribe(warnLights)
+        state.lightsState = 'on'
+
+        lights.on()
+        lights.setColorTemperature(colorTemperature)
+        lights.setLevel(level)
+    }
+    else if (state.lightsState == 'warn') {
+        unsubscribe(turnOffLights)
+        unsubscribe(warnLights)
+        state.lightsState = 'on'
+
+        lights.setLevel(state.preWarnLevel)
+    }
+}
+
+def turnOffLights() {
+    unsubscribe(turnOffLights)
+    unsubscribe(warnLights)
+    state.lightsState = 'off'
     
-//         if(repeatDelay != 0)
-//         {
-//             runIn(repeatDelay, checkOpenSensors)
-//         }
-//     }
-// }
+    lights.off()
+}
 
-// def closeNotificationHandler(evt) {
-//     if(enableSwitch.currentValue("switch") == 'on')
-//     {
-//         def newmsg = "${evt.displayName} is closed"
-//         notification.speak(newmsg)
-//     }
-// }
+def turnOnNightLights() {
+    if (nightTimeOnly == false || (nightTimeOnly && isNightTime())) {
+        nightLights.on()
+        nightLights.setColorTemperature(nightColorTemperature)
+        nightLights.setLevel(nightLevel)
+    }
+}
 
-// def checkOpenSensors()
-// {
-//     if(enableSwitch.currentValue("switch") == 'on')
-//     {
-//         def openDevices = openSensors.findAll { it?.currentValue("contact") == 'open' }
-//         for(device in openDevices) 
-//         {
-//             def newmsg = "${device} is open"
-//             notification.speak(newmsg)
-//         }
+def turnOffNightLights() {
+    nightLights.off()
+}
 
-//         if(openDevices && repeatDelay != 0)
-//         {
-//             runIn(repeatDelay, checkOpenSensors)
-//         }
-//     }
-// }
+def isNightTime() {
+    def sunriseAndSunset = getSunriseAndSunset()
+
+    def between = timeOfDayIsBetween(sunriseAndSunset.sunset, sunriseAndSunset.sunrise, new Date(), location.timeZone)
+    if (between) {
+        return true
+    } else {
+        return false
+    }
+}
