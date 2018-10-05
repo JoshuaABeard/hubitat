@@ -193,10 +193,5 @@ def turnOffNightLights() {
 def isNightTime() {
     def sunriseAndSunset = getSunriseAndSunset()
 
-    def between = timeOfDayIsBetween(sunriseAndSunset.sunset, sunriseAndSunset.sunrise, new Date(), location.timeZone)
-    if (between) {
-        return true
-    } else {
-        return false
-    }
+    return timeOfDayIsBetween(sunriseAndSunset.sunset, sunriseAndSunset.sunrise, new Date(), location.timeZone)
 }
