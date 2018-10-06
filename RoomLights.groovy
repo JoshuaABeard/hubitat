@@ -27,38 +27,44 @@ preferences {
             input "motionTimeout", "number", title: "timeout (Seconds)", description: "0...9999", required: true, defaultValue: 60
         }
 
+        section("") {}
+
         section("Lights (Day):") {
-            input "dayLights", "capability.light", title: "Lights to Control", required: true, multiple: true
+            input "dayLights", "capability.light", title: "Lights to Control", required: false, multiple: true
             input "dayLevel", "number", title: "Level", description: "1...100", required: true, defaultValue: 100
             input "dayColorTemperature", "number", title: "Color Temperature (Kelvin)", description: "2000...65000", required: true, defaultValue: 2700
         }
 
         section("Lights (Evening):") {
-            input "eveningLights", "capability.light", title: "Lights to Control", required: true, multiple: true
+            input "eveningLights", "capability.light", title: "Lights to Control", required: false, multiple: true
             input "eveningLevel", "number", title: "Level", description: "1...100", required: true, defaultValue: 100
             input "eveningColorTemperature", "number", title: "Color Temperature (Kelvin)", description: "2000...65000", required: true, defaultValue: 2700
         }
 
         section("Lights (Night):") {
-            input "nightLights", "capability.light", title: "Lights to Control", required: true, multiple: true
+            input "nightLights", "capability.light", title: "Lights to Control", required: false, multiple: true
             input "nightLevel", "number", title: "Level", description: "1...100", required: true, defaultValue: 100
             input "nightColorTemperature", "number", title: "Color Temperature (Kelvin)", description: "2000...65000", required: true, defaultValue: 2700
         }
 
         section("Lights (Away):") {
-            input "awayLights", "capability.light", title: "Lights to Control", required: true, multiple: true
+            input "awayLights", "capability.light", title: "Lights to Control", required: false, multiple: true
             input "awayLevel", "number", title: "Level", description: "1...100", required: true, defaultValue: 100
             input "awayColorTemperature", "number", title: "Color Temperature (Kelvin)", description: "2000...65000", required: true, defaultValue: 2700
         }
+
+        section("") {}
 
         section("Warn when turning off Lights:") {
             input "warningDimBy", "number", title: "Warning Dim By (Level)", description: "0...99", required: true, defaultValue: 30
             input "warningTimeout", "number", title: "Warning Timeout (Seconds)", description: "0...9999", required: true, defaultValue: 10
         }
 
+        section("") {}
+
         section("Sleep mode:") {
             input "sleepSwitch", "capability.switch", title: "Sleep Switch", required: false, multiple: false
-            input "sleepLights", "capability.light", title: "Lights to Control", required: true, multiple: true
+            input "sleepLights", "capability.light", title: "Lights to Control", required: false, multiple: true
             input "sleepLevel", "number", title: "Level", description: "1...100", required: true, defaultValue: 100
             input "sleepColorTemperature", "number", title: "Color Temperature", description: "2000...65000", required: true, defaultValue: 2700
             input "nightTimeOnly", "bool", title: "Between Sunset and Sunrise", defaultValue: true
@@ -81,32 +87,38 @@ def initialize() {
     state.preWarnLevel = 100
     state.motionActive = false
     state.currentMode = location.currentMode.name
-    state.lightsMode = location.currentMode.name
+    state.activeLightMode = location.currentMode.name
 
     unschedule()
     unsubscribe()
 
     subscribe(motionSensors, "motion", motionHandler)
-    subscribe(sleepSwitch, "switch", sleepHandler)
 
-    subscribe(location, "sunrise", sunriseEventHandler)
-    subscribe(location, "sunset", sunsetEventHandler)
+    if (sleepSwitch) {
+        subscribe(sleepSwitch, "switch", sleepHandler)
+    }
 
+    subscribe(location, "sunrise", sunriseHandler)
+    subscribe(location, "sunset", sunsetHandler)
     subscribe(location, "mode", modeHandler)
 }
 
 def modeHandler(evt)
 {
     state.currentMode = location.currentMode.name
+
+    turnOffLights(state.activeLightMode)
+
+    motionMonitor()
 }
 
-def sunriseEventHandler(evt) {
+def sunriseHandler(evt) {
     if (state.lightsState == 'sleeping') {
         turnOffNightLights()
     }
 }
 
-def sunsetEventHandler(evt) {
+def sunsetHandler(evt) {
     if (state.lightsState == 'sleeping') {
         turnOnNightLights()
     }
@@ -114,7 +126,7 @@ def sunsetEventHandler(evt) {
 
 def sleepHandler(evt) {
     if (sleepSwitch.currentValue("switch") == 'on') {
-        turnOffLights()
+        turnOffLights(state.activeLightMode)
         state.lightsState = 'sleeping'
 
         turnOnNightLights()
@@ -122,6 +134,7 @@ def sleepHandler(evt) {
     else {
         state.lightsState = 'off'
         turnOffNightLights()
+
         motionMonitor()
     }
 }
@@ -142,7 +155,7 @@ def motionHandler(evt) {
 
 def motionMonitor() {
     if (state.motionActive) {
-        turnOnLights()
+        turnOnLights(state.currentMode)
     }
     else
     {
@@ -158,7 +171,17 @@ def motionMonitor() {
     }
 }
 
-def warnLights() {
+def warnLights(mode) {
+    if(mode == null)
+    {
+        mode = state.activeLightMode
+    }
+    def modeLights = getLightsForMode(mode)
+    def lights = modeLights.devices
+    if (lights == null) {
+        return
+    }
+
     if (state.lightsState == 'on')
     {
         state.lightsState = 'warn'
@@ -170,7 +193,9 @@ def warnLights() {
                 newLevel = 1
             }
 
+            // Bug here, we only grab the last bulbs level for restore
             state.preWarnLevel = level
+
             light.setLevel(newLevel)
         }
 
@@ -178,15 +203,27 @@ def warnLights() {
     }
 }
 
-def turnOnLights() {
-    if (state.lightsState == 'off') {
+def turnOnLights(mode) {
+    if(mode == null)
+    {
+        mode = state.activeLightMode
+    }
+
+    def modeLights = getLightsForMode(mode)
+    def lights = modeLights.devices
+    if (lights == null) {
+        return
+    }
+
+    if (state.lightsState == 'off' || (state.lightsState == 'on' && state.activeLightMode != mode)) {
         unschedule(turnOffLights)
         unschedule(warnLights)
         state.lightsState = 'on'
+        state.activeLightMode = mode
 
         lights.on()
-        lights.setColorTemperature(colorTemperature)
-        lights.setLevel(level)
+        lights.setLevel(modeLights.level)
+        lights.setColorTemperature(modeLights.colorTemperature)
     }
     else if (state.lightsState == 'warn') {
         unschedule(turnOffLights)
@@ -197,25 +234,42 @@ def turnOnLights() {
     }
 }
 
-def turnOffLights() {
+def turnOffLights(mode) {
+    if(mode == null)
+    {
+        mode = state.activeLightMode
+    }
+
+    def modeLights = getLightsForMode(mode)
+    def lights = modeLights.devices
+    if (lights == null) {
+        return
+    }
+
     unschedule(turnOffLights)
     unschedule(warnLights)
     state.lightsState = 'off'
-    
+
     lights.off()
 }
 
 def turnOnNightLights() {
+    if (nightLights == null) {
+        return
+    }
+
     if (nightTimeOnly == false || (nightTimeOnly && isNightTime())) {
         sleepLights.on()
         sleepLights.setLevel(sleepLevel)
         sleepLights.setColorTemperature(sleepColorTemperature)
-
     }
 }
 
 def turnOffNightLights() {
-    sleepLights.off()
+    if (sleepLights)
+    {
+        sleepLights.off()
+    }
 }
 
 def isNightTime() {
@@ -224,20 +278,20 @@ def isNightTime() {
     return timeOfDayIsBetween(sunriseAndSunset.sunset, sunriseAndSunset.sunrise, new Date(), location.timeZone)
 }
 
-def getLightsForMode()
+def getLightsForMode(mode)
 {
-    switch (state.mode) {
-        case "Day":    
-            return ["lights": dayLights, "level": dayLevel, "colorTemperature": dayColorTemperature]
+    switch (mode) {
+        case "Day":
+            return ["name": "Day", "devices": dayLights, "level": dayLevel, "colorTemperature": dayColorTemperature]
             break;
         case "Evening":
-            return ["lights": eveningLights, "level": eveningLevel, "colorTemperature": eveningColorTemperature]
+            return ["name": "Evening", "devices": eveningLights, "level": eveningLevel, "colorTemperature": eveningColorTemperature]
             break;
         case "Night":
-            return ["lights": nightLights, "level": nightLevel, "colorTemperature": nightColorTemperature]
+            return ["name": "Night", "devices": nightLights, "level": nightLevel, "colorTemperature": nightColorTemperature]
             break;
         case "Away":
-            return ["lights": awayLights, "level": awayLevel, "colorTemperature": awayColorTemperature]
+            return ["name": "Away", "devices": awayLights, "level": awayLevel, "colorTemperature": awayColorTemperature]
             break;
     }
 
