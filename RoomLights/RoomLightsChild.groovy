@@ -30,6 +30,8 @@ preferences {
         section("Motion:") {
             input "motionSensors", "capability.motionSensor", title: "Sensor(s)", required: true, multiple: true
             input "motionTimeout", "number", title: "timeout (Seconds)", description: "0...9999", required: true, defaultValue: 60
+            input "maxActivityLevel", "number", title: "Max Activity Level", description: "1...99", required: true, defaultValue: 1
+
         }
 
         section("") {}
@@ -61,8 +63,8 @@ preferences {
         section("") {}
 
         section("Warn when turning off Lights:") {
-            input "warningDimBy", "number", title: "Warning Dim By (Level)", description: "0...99", required: true, defaultValue: 30
-            input "warningTimeout", "number", title: "Warning Timeout (Seconds)", description: "0...9999", required: true, defaultValue: 10
+            input "warningDimBy", "number", title: "Dim By (Level)", description: "0...99", required: true, defaultValue: 30
+            input "warningTimeout", "number", title: "Timeout (Seconds)", description: "0...9999", required: true, defaultValue: 10
         }
 
         section("") {}
@@ -174,14 +176,8 @@ def motionMonitor() {
     {
         if (state.lightsState != 'off')
         {
-            // consider activity level, max out at 5 times 
+            // consider activity level
             def timeout = motionTimeout*state.activityLevel
-            def maxTimeout = motionTimeout*5
-            if(timeout > maxTimeout)
-            {
-                timeout = maxTimeout
-            }
-
             if (warningTimeout == 0) {
                 runIn(timeout, turnOffLights)
             }
@@ -217,7 +213,9 @@ def warnLights(mode) {
             // Bug here, we only grab the last bulbs level for restore
             state.preWarnLevel = level
 
-            light.setLevel(newLevel)
+            if (light.hasCommand("setLevel")) {
+                light.setLevel(newLevel)
+            }
         }
 
         runIn(warningTimeout, turnOffLights)
@@ -244,14 +242,22 @@ def turnOnLights(mode) {
         state.activeLightMode = mode
 
         lights.on()
-        lights.setLevel(modeLights.level)
-        lights.setColorTemperature(modeLights.colorTemperature)
+
+        setLightsLevel(lights, modeLights.level)
+
+        setLightsColorTemperature(lights, modeLights.colorTemperature)
     }
     else if (state.lightsState == 'warn') {
         state.lightsState = 'on'
-        state.activityLevel += 1;
+        
+        def newActivityLevel = state.activityLevel + 1
+        if(newActivityLevel > maxActivityLevel) {
+            newActivityLevel = maxActivityLevel
+        }
+        state.activityLevel = newActivityLevel
 
-        lights.setLevel(state.preWarnLevel)
+
+        setLightsLevel(lights, state.preWarnLevel)
     }
 }
 
@@ -282,8 +288,10 @@ def turnOnNightLights() {
 
     if (nightTimeOnly == false || (nightTimeOnly && isNightTime())) {
         sleepLights.on()
-        sleepLights.setLevel(sleepLevel)
-        sleepLights.setColorTemperature(sleepColorTemperature)
+
+        setLightsLevel(sleepLights, sleepLevel)
+
+        setLightsColorTemperature(sleepLights, sleepColorTemperature)
     }
 }
 
@@ -316,5 +324,20 @@ def getLightsForMode(mode)
             return ["name": "Away", "devices": awayLights, "level": awayLevel, "colorTemperature": awayColorTemperature]
             break;
     }
+}
 
+def setLightsLevel(devices, newLevel) {
+    for(device in devices) {
+        if (device.hasCommand("setLevel")) {
+            device.setLevel(newLevel)
+        }
+    }
+}
+
+def setLightsColorTemperature(devices, colorTemperature) {
+    for(device in devices) {
+        if (device.hasCommand("setColorTemperature")) {
+            device.setColorTemperature(colorTemperature)
+        }
+    }
 }
