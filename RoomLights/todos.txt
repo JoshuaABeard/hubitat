@@ -1,0 +1,3 @@
+add night light support by motion
+add timeout for sleep mode
+add pico support
