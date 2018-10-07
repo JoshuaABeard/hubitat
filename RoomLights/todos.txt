@@ -3,3 +3,4 @@
 	add contact sensor override much like sleep mode
 	swap modes without turning off previous mode lights first
 	lock app to prevent things from happening
+	activity level for night mode
