@@ -1,15 +1,16 @@
 /**
- *  ****************  Room Lights Manager  ****************
+ *  ****************  Room Lights  ****************
  *  10/3/2018 Starting version
  */
 
 definition(
-    name: "Room Lights Manager",
+    name: "Room Lights Child",
     namespace: "jbeard",
     author: "Joshua Beard",
     description: "Manages Lights in a Room",
     category: "Convenience",
     version: "1.0.0",
+    parent: "jbeard:Room Lights",
     iconUrl: "",
     iconX2Url: "",
     iconX3Url: ""
@@ -20,6 +21,10 @@ preferences {
     page(name: "mainPage", title: "", uninstall: true, install: true) {
         section() {
             paragraph "Manages Lights in a Room"
+        }
+
+        section("App Instance:") {
+            label title: "Name for Instance", required: true
         }
 
         section("Motion:") {
@@ -88,6 +93,7 @@ def initialize() {
     state.motionActive = false
     state.currentMode = location.currentMode.name
     state.activeLightMode = location.currentMode.name
+    state.activityLevel = 1
 
     unschedule()
     unsubscribe()
@@ -140,12 +146,19 @@ def sleepHandler(evt) {
 }
 
 def motionHandler(evt) {
-    def activeDevices = motionSensors.findAll { it?.currentValue("motion") == 'active' }
-    if (activeDevices) {
+    if(evt.value == 'active')
+    {
         state.motionActive = true
     }
     else {
-        state.motionActive = false
+        // Check if any device is active if so stay active
+        def activeDevices = motionSensors.findAll { it?.currentValue("motion") == 'active' }
+        if (activeDevices || evt.value == 'active') {
+            state.motionActive = true
+        }
+        else {
+            state.motionActive = false
+        }
     }
 
     if (state.lightsState != 'sleeping') {
@@ -161,11 +174,19 @@ def motionMonitor() {
     {
         if (state.lightsState != 'off')
         {
+            // consider activity level, max out at 5 times 
+            def timeout = motionTimeout*state.activityLevel
+            def maxTimeout = motionTimeout*5
+            if(timeout > maxTimeout)
+            {
+                timeout = maxTimeout
+            }
+
             if (warningTimeout == 0) {
-                runIn(motionTimeout, turnOffLights)
+                runIn(timeout, turnOffLights)
             }
             else {
-                runIn(motionTimeout, warnLights)
+                runIn(timeout, warnLights)
             }
         }
     }
@@ -215,9 +236,10 @@ def turnOnLights(mode) {
         return
     }
 
+    unschedule(turnOffLights)
+    unschedule(warnLights)
+
     if (state.lightsState == 'off' || (state.lightsState == 'on' && state.activeLightMode != mode)) {
-        unschedule(turnOffLights)
-        unschedule(warnLights)
         state.lightsState = 'on'
         state.activeLightMode = mode
 
@@ -226,9 +248,8 @@ def turnOnLights(mode) {
         lights.setColorTemperature(modeLights.colorTemperature)
     }
     else if (state.lightsState == 'warn') {
-        unschedule(turnOffLights)
-        unschedule(warnLights)
         state.lightsState = 'on'
+        state.activityLevel += 1;
 
         lights.setLevel(state.preWarnLevel)
     }
@@ -248,6 +269,7 @@ def turnOffLights(mode) {
 
     unschedule(turnOffLights)
     unschedule(warnLights)
+    state.activityLevel = 1
     state.lightsState = 'off'
 
     lights.off()
