@@ -5,3 +5,4 @@ add disable switch
 add on/off switch per mode
 add pages for each group of settings
 add contact sensor override much like sleep mode
+add color support for bulbs
