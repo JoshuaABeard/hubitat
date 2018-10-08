@@ -26,6 +26,7 @@ preferences {
     page(name: "nightModePage")
     page(name: "awayModePage")
     page(name: "sleepModePage")
+    page(name: "doorModePage")
 }
 
 def mainPage()
@@ -55,6 +56,7 @@ def mainPage()
             href(name: "href", title: "<b>Night Mode</b>", required: false, page: "nightModePage")
             href(name: "href", title: "<b>Away Mode</b>", required: false, page: "awayModePage")
             href(name: "href", title: "<b>Sleep Mode</b>", required: false, page: "sleepModePage")
+            href(name: "href", title: "<b>Door Mode</b>", required: false, page: "doorModePage")
         }
     }
 }
@@ -75,7 +77,7 @@ def dayModePage()
         }
 
         section("<b>Mode Settings</b>") {
-            input "dayMaxActivityLevel", "number", title: "Max Activity Level", description: "1...99", required: true, defaultValue: 1
+            input "dayMaxActivityLevel", "number", title: "Max Activity Level", description: "1...99", required: true, defaultValue: 5
             input "daybyMotion", "bool", title: "By Motion", defaultValue: true
             input "dayNightTimeOnly", "bool", title: "Between Sunset and Sunrise", defaultValue: false
             input "dayTimeout", "number", title: "Timeout (Minutes)", description: "1...1440", required: true, defaultValue: 0
@@ -99,7 +101,7 @@ def eveningModePage()
         }
 
         section("<b>Mode Settings</b>") {
-            input "eveningMaxActivityLevel", "number", title: "Max Activity Level", description: "1...99", required: true, defaultValue: 1
+            input "eveningMaxActivityLevel", "number", title: "Max Activity Level", description: "1...99", required: true, defaultValue: 5
             input "eveningbyMotion", "bool", title: "By Motion", defaultValue: true
             input "eveningNightTimeOnly", "bool", title: "Between Sunset and Sunrise", defaultValue: false
             input "eveningTimeout", "number", title: "Timeout (Minutes)", description: "1...1440", required: true, defaultValue: 0
@@ -159,7 +161,7 @@ def sleepModePage()
 {
     def colorsList = colorsRGB.collect { [(it.key):it.value[1]] }
 
-    dynamicPage(name: "sleepModePage", title: "<b>Sleep mode</b>") {
+    dynamicPage(name: "sleepModePage", title: "<b>Sleep Mode</b>") {
         section("<b>Switch</b>") {
             input "sleepSwitch", "capability.switch", title: "Sleep Switch", required: false, multiple: false
             input "sleepSwitchTimeout", "number", title: "Switch Timeout (Minutes)", description: "1...1440", required: true, defaultValue: 900
@@ -176,10 +178,37 @@ def sleepModePage()
         }
 
         section("<b>Mode Settings</b>") {
-            input "sleepMaxActivityLevel", "number", title: "Max Activity Level", description: "1...99", required: true, defaultValue: 1
+            input "sleepMaxActivityLevel", "number", title: "Max Activity Level", description: "1...99", required: true, defaultValue: 5
             input "sleepbyMotion", "bool", title: "By Motion", defaultValue: true
             input "sleepNightTimeOnly", "bool", title: "Between Sunset and Sunrise", defaultValue: false
             input "sleepTimeout", "number", title: "Timeout (Minutes)", description: "1...1440", required: true, defaultValue: 0
+        }
+    }
+}
+
+def doorModePage()
+{
+    def colorsList = colorsRGB.collect { [(it.key):it.value[1]] }
+
+    dynamicPage(name: "doorModePage", title: "<b>Door Mode</b>") {
+        section("<b>Contact Sensor</b>") {
+            input "doorSensor", "capability.contact", title: "Door Contact Sensor", required: false, multiple: false
+            input "doorActiveWhenOpened", "bool", title: "Active When Opened", defaultValue: true
+        }
+
+        section("<b>Lights</b>") {
+            input "doorLights", "capability.light", title: "Lights to Control", required: false, multiple: true
+        }
+
+        section("<b>Light Settings</b>") {
+            input "doorLevel", "number", title: "Level", description: "1...100", required: true, defaultValue: 100
+            input "doorColorTemperature", "number", title: "Color Temperature", description: "2000...65000", required: true, defaultValue: 2700
+            input "doorColor", "enum", title: "Color", required: false, multiple: false, defaultValue: null, options: colorsList
+        }
+
+        section("<b>Mode Settings</b>") {
+            input "doorNightTimeOnly", "bool", title: "Between Sunset and Sunrise", defaultValue: false
+            input "doorTimeout", "number", title: "Timeout (Minutes)", description: "1...1440", required: true, defaultValue: 0
         }
     }
 }
@@ -210,10 +239,19 @@ def initialize() {
         subscribe(sleepSwitch, "switch", sleepHandler)
     }
 
+    if (doorSensor) {
+        subscribe(doorSensor, "contact", doorHandler)
+    }
+
     subscribe(location, "sunrise", sunriseHandler)
     subscribe(location, "sunset", sunsetHandler)
     subscribe(location, "mode", modeHandler)
     
+    updateActiveModeIfChanged()
+}
+
+def doorHandler(evt)
+{
     updateActiveModeIfChanged()
 }
 
@@ -276,8 +314,13 @@ def motionHandler(evt) {
 }
 
 def getCurrentMode() {
+    def activeDoorState = doorActiveWhenOpened ? "open" : "closed"
+    if (doorSensor && doorSensor.currentValue("contact") == activeDoorState) {
+        return "Door"
+    }
+
     if (sleepSwitch && sleepSwitch.currentValue("switch") == 'on') {
-        return "sleep"
+        return "Sleep"
     }
 
     return location.currentMode.name
@@ -445,6 +488,9 @@ def getSettingsForMode(mode)
             break;
         case "Sleep":
             return ["name": "Sleep", "devices": sleepLights, "level": sleepLevel, "colorTemperature": sleepColorTemperature, "color": sleepColor, "byMotion": sleepbyMotion, "nightTimeOnly": sleepNightTimeOnly, "maxActivityLevel": sleepMaxActivityLevel, "timeout": sleepTimeout]
+            break;
+        case "Door":
+            return ["name": "Door", "devices": doorLights, "level": doorLevel, "colorTemperature": doorColorTemperature, "color": doorColor, "byMotion": false, "nightTimeOnly": doorNightTimeOnly, "maxActivityLevel": 1, "timeout": doorTimeout]
             break;
     }
 }
