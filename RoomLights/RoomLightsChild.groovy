@@ -293,7 +293,7 @@ def updateActiveModeIfChanged() {
         if (modeSettings.byMotion) {
             updateBasedOnMotion(newMode)
         }
-        else {
+        else if (!modeSettings.nightTimeOnly || (modeSettings.nightTimeOnly && isNightTime()))
             turnOnLights(newMode)
 
             if (modeSettings.timeout != 0) {
