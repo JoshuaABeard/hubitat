@@ -84,8 +84,10 @@ def dayModePage()
         }
 
         section("<b>Switches</b>") {
+            input "dayToggleOnSwitches", "capability.switch", title: "Switches to Toggle On", required: false, multiple: true
+            input "dayToggleOffSwitches", "capability.switch", title: "Switches to Toggle Off", required: false, multiple: true
             input "dayOnSwitches", "capability.switch", title: "Switches to Turn On", required: false, multiple: true
-            input "dayOffSwitches", "capability.switch", title: "Switches to Turn On", required: false, multiple: true
+            input "dayOffSwitches", "capability.switch", title: "Switches to Turn Off", required: false, multiple: true
         }
     }
 }
@@ -113,8 +115,10 @@ def eveningModePage()
         }
 
         section("<b>Switches</b>") {
+            input "eveningToggleOnSwitches", "capability.switch", title: "Switches to Toggle On", required: false, multiple: true
+            input "eveningToggleOffSwitches", "capability.switch", title: "Switches to Toggle Off", required: false, multiple: true
             input "eveningOnSwitches", "capability.switch", title: "Switches to Turn On", required: false, multiple: true
-            input "eveningOffSwitches", "capability.switch", title: "Switches to Turn On", required: false, multiple: true
+            input "eveningOffSwitches", "capability.switch", title: "Switches to Turn Off", required: false, multiple: true
         }
     }
 }
@@ -142,8 +146,10 @@ def nightModePage()
         }
 
         section("<b>Switches</b>") {
+            input "nightToggleOnSwitches", "capability.switch", title: "Switches to Toggle On", required: false, multiple: true
+            input "nightToggleOffSwitches", "capability.switch", title: "Switches to Toggle Off", required: false, multiple: true
             input "nightOnSwitches", "capability.switch", title: "Switches to Turn On", required: false, multiple: true
-            input "nightOffSwitches", "capability.switch", title: "Switches to Turn On", required: false, multiple: true
+            input "nightOffSwitches", "capability.switch", title: "Switches to Turn Off", required: false, multiple: true
         }
     }
 }
@@ -171,8 +177,10 @@ def awayModePage()
         }
 
         section("<b>Switches</b>") {
+            input "awayToggleOnSwitches", "capability.switch", title: "Switches to Toggle On", required: false, multiple: true
+            input "awayToggleOffSwitches", "capability.switch", title: "Switches to Toggle Off", required: false, multiple: true
             input "awayOnSwitches", "capability.switch", title: "Switches to Turn On", required: false, multiple: true
-            input "awayOffSwitches", "capability.switch", title: "Switches to Turn On", required: false, multiple: true
+            input "awayOffSwitches", "capability.switch", title: "Switches to Turn Off", required: false, multiple: true
         }
     }
 }
@@ -205,8 +213,10 @@ def sleepModePage()
         }
 
         section("<b>Switches</b>") {
+            input "sleepToggleOnSwitches", "capability.switch", title: "Switches to Toggle On", required: false, multiple: true
+            input "sleepToggleOffSwitches", "capability.switch", title: "Switches to Toggle Off", required: false, multiple: true
             input "sleepOnSwitches", "capability.switch", title: "Switches to Turn On", required: false, multiple: true
-            input "sleepOffSwitches", "capability.switch", title: "Switches to Turn On", required: false, multiple: true
+            input "sleepOffSwitches", "capability.switch", title: "Switches to Turn Off", required: false, multiple: true
         }
     }
 }
@@ -239,8 +249,10 @@ def doorModePage()
         }
 
         section("<b>Switches</b>") {
+            input "doorToggleOnSwitches", "capability.switch", title: "Switches to Toggle On", required: false, multiple: true
+            input "doorToggleOffSwitches", "capability.switch", title: "Switches to Toggle Off", required: false, multiple: true
             input "doorOnSwitches", "capability.switch", title: "Switches to Turn On", required: false, multiple: true
-            input "doorOffSwitches", "capability.switch", title: "Switches to Turn On", required: false, multiple: true
+            input "doorOffSwitches", "capability.switch", title: "Switches to Turn Off", required: false, multiple: true
         }
     }
 }
@@ -472,7 +484,9 @@ def activateMode(mode) {
     def lights = modeSettings.devices
     def onSwitches = modesSettings.onSwitches
     def offSwitches = modeSettings.offSwitches
-    if (lights == null && onSwitches == null && offSwitches == null) {
+    def toggleOnSwitches = modesSettings.toggleOnSwitches
+    def toggleOffSwitches = modeSettings.toggleOffSwitches
+    if (lights == null && onSwitches == null && offSwitches == null && toggleOnSwitches == null && toggleOffSwitches == null) {
         return
     }
 
@@ -500,6 +514,10 @@ def activateMode(mode) {
 
         onSwitches.on()
         offSwitches.off()
+
+        // Toggle Switches
+        toggleOnSwitches.on()
+        toggleOffSwitches.off()
     }
 }
 
@@ -508,7 +526,9 @@ def deactivateMode(mode) {
     def lights = modeSettings.devices
     def onSwitches = modesSettings.onSwitches
     def offSwitches = modeSettings.offSwitches
-    if (lights == null && onSwitches == null && offSwitches == null) {
+    def toggleOnSwitches = modesSettings.toggleOnSwitches
+    def toggleOffSwitches = modeSettings.toggleOffSwitches
+    if (lights == null && onSwitches == null && offSwitches == null && toggleOnSwitches == null && toggleOffSwitches == null) {
         return
     }
 
@@ -519,8 +539,10 @@ def deactivateMode(mode) {
     state.modeState = 'off'
 
     lights.off()
-    onSwitches.off()
-    offSwitches.on()
+
+    // Toggle Switches
+    toggleOnSwitches.off()
+    toggleOffSwitches.on()
 }
 
 def isNightTime() {
@@ -539,25 +561,25 @@ def getSettingsForMode(mode)
 
     switch (mode) {
         case "Unknown":
-            return ["name": "Unknown", "devices": null, "level": 0, "colorTemperature": 2700, "color": "blue", "byMotion": false, "nightTimeOnly": false, "maxActivityLevel": 1, "timeout": 0, "OnSwitches" null, "OffSwitches": null]
+            return ["name": "Unknown", "devices": null, "level": 0, "colorTemperature": 2700, "color": "blue", "byMotion": false, "nightTimeOnly": false, "maxActivityLevel": 1, "timeout": 0, "onSwitches" null, "offSwitches": null, "toggleOnSwitches": null, "toggleOffSwitches": null]
             break;
         case "Day":
-            return ["name": "Day", "devices": dayLights, "level": dayLevel, "colorTemperature": dayColorTemperature, "color": dayColor, "byMotion": daybyMotion, "nightTimeOnly": dayNightTimeOnly, "maxActivityLevel": dayMaxActivityLevel, "timeout": dayTimeout, "onSwitches" dayOnSwitches, "offSwitches": dayOffSwitches]
+            return ["name": "Day", "devices": dayLights, "level": dayLevel, "colorTemperature": dayColorTemperature, "color": dayColor, "byMotion": daybyMotion, "nightTimeOnly": dayNightTimeOnly, "maxActivityLevel": dayMaxActivityLevel, "timeout": dayTimeout, "onSwitches" dayOnSwitches, "offSwitches": dayOffSwitches, "toggleOnSwitches": dayToggleOnSwitches, "toggleOffSwitches": dayToggleOffSwitches]
             break;
         case "Evening":
-            return ["name": "Evening", "devices": eveningLights, "level": eveningLevel, "colorTemperature": eveningColorTemperature, "color": eveningColor, "byMotion": eveningbyMotion, "nightTimeOnly": eveningNightTimeOnly, "maxActivityLevel": eveningMaxActivityLevel, "timeout": eveningTimeout, "onSwitches" eveningOnSwitches, "offSwitches": eveningOffSwitches]
+            return ["name": "Evening", "devices": eveningLights, "level": eveningLevel, "colorTemperature": eveningColorTemperature, "color": eveningColor, "byMotion": eveningbyMotion, "nightTimeOnly": eveningNightTimeOnly, "maxActivityLevel": eveningMaxActivityLevel, "timeout": eveningTimeout, "onSwitches" eveningOnSwitches, "offSwitches": eveningOffSwitches, "toggleOnSwitches": eveningToggleOnSwitches, "toggleOffSwitches": eveningToggleOffSwitches]
             break;
         case "Night":
-            return ["name": "Night", "devices": nightLights, "level": nightLevel, "colorTemperature": nightColorTemperature, "color": nightColor, "byMotion": nightbyMotion, "nightTimeOnly": nightNightTimeOnly, "maxActivityLevel": nightMaxActivityLevel, "timeout": nightTimeout, "onSwitches" nightOnSwitches, "offSwitches": nightOffSwitches]
+            return ["name": "Night", "devices": nightLights, "level": nightLevel, "colorTemperature": nightColorTemperature, "color": nightColor, "byMotion": nightbyMotion, "nightTimeOnly": nightNightTimeOnly, "maxActivityLevel": nightMaxActivityLevel, "timeout": nightTimeout, "onSwitches" nightOnSwitches, "offSwitches": nightOffSwitches, "toggleOnSwitches": nightToggleOnSwitches, "toggleOffSwitches": nightToggleOffSwitches]
             break;
         case "Away":
-            return ["name": "Away", "devices": awayLights, "level": awayLevel, "colorTemperature": awayColorTemperature, "color": awayColor, "byMotion": awaybyMotion, "nightTimeOnly": awayNightTimeOnly, "maxActivityLevel": awayMaxActivityLevel, "timeout": awayTimeout, "onSwitches" awayOnSwitches, "offSwitches": awayOffSwitches]
+            return ["name": "Away", "devices": awayLights, "level": awayLevel, "colorTemperature": awayColorTemperature, "color": awayColor, "byMotion": awaybyMotion, "nightTimeOnly": awayNightTimeOnly, "maxActivityLevel": awayMaxActivityLevel, "timeout": awayTimeout, "onSwitches" awayOnSwitches, "offSwitches": awayOffSwitches, "toggleOnSwitches": awayToggleOnSwitches, "toggleOffSwitches": awayToggleOffSwitches]
             break;
         case "Sleep":
-            return ["name": "Sleep", "devices": sleepLights, "level": sleepLevel, "colorTemperature": sleepColorTemperature, "color": sleepColor, "byMotion": sleepbyMotion, "nightTimeOnly": sleepNightTimeOnly, "maxActivityLevel": sleepMaxActivityLevel, "timeout": sleepTimeout, "onSwitches" sleepOnSwitches, "offSwitches": sleepOffSwitches]
+            return ["name": "Sleep", "devices": sleepLights, "level": sleepLevel, "colorTemperature": sleepColorTemperature, "color": sleepColor, "byMotion": sleepbyMotion, "nightTimeOnly": sleepNightTimeOnly, "maxActivityLevel": sleepMaxActivityLevel, "timeout": sleepTimeout, "onSwitches" sleepOnSwitches, "offSwitches": sleepOffSwitches, "toggleOnSwitches": sleepToggleOnSwitches, "toggleOffSwitches": sleepToggleOffSwitches]
             break;
         case "Door":
-            return ["name": "Door", "devices": doorLights, "level": doorLevel, "colorTemperature": doorColorTemperature, "color": doorColor, "byMotion": false, "nightTimeOnly": doorNightTimeOnly, "maxActivityLevel": 1, "timeout": doorTimeout, "onSwitches" doorOnSwitches, "offSwitches": doorOffSwitches]
+            return ["name": "Door", "devices": doorLights, "level": doorLevel, "colorTemperature": doorColorTemperature, "color": doorColor, "byMotion": false, "nightTimeOnly": doorNightTimeOnly, "maxActivityLevel": 1, "timeout": doorTimeout, "onSwitches" doorOnSwitches, "offSwitches": doorOffSwitches, "toggleOnSwitches": doorToggleOnSwitches, "toggleOffSwitches": doorToggleOffSwitches]
             break;
     }
 }
