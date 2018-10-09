@@ -192,7 +192,7 @@ def doorModePage()
 
     dynamicPage(name: "doorModePage", title: "<b>Door Mode</b>") {
         section("<b>Contact Sensor</b>") {
-            input "doorSensor", "capability.contact", title: "Door Contact Sensor", required: false, multiple: false
+            input "doorSensor", "capability.contactSensor", title: "Door Contact Sensor", required: false, multiple: false
             input "doorActiveWhenOpened", "bool", title: "Active When Opened", defaultValue: true
         }
 
@@ -230,8 +230,8 @@ def initialize() {
     state.lightsState = 'off' // 'off', 'on', 'warn'
     state.preWarnLevel = 100
     state.motionActive = motionSensors.findAll { it?.currentValue("motion") == 'active' } ? true : false
-    state.activeLightMode = 'away'
-    state.activityLevel = 1
+    state.activeLightMode = 'Unknown'
+    state.motionActivityLevel = 0
 
     subscribe(motionSensors, "motion", motionHandler)
 
@@ -336,7 +336,7 @@ def updateActiveModeIfChanged() {
         if (modeSettings.byMotion) {
             updateBasedOnMotion(newMode)
         }
-        else if (!modeSettings.nightTimeOnly || (modeSettings.nightTimeOnly && isNightTime()))
+        else if (!modeSettings.nightTimeOnly || (modeSettings.nightTimeOnly && isNightTime())) {
             turnOnLights(newMode)
 
             if (modeSettings.timeout != 0) {
@@ -353,7 +353,17 @@ def updateBasedOnMotion(mode) {
     }
 
     if (state.motionActive) {
-        if (state.lightsState == 'off') {
+        unschedule(turnOffLights)
+        unschedule(warnLights)
+
+        // Increase activity level
+        def newActivityLevel = state.motionActivityLevel + 1
+        if(newActivityLevel > modeSettings.maxActivityLevel) {
+            newActivityLevel = modeSettings.maxActivityLevel
+        }
+        state.motionActivityLevel = newActivityLevel
+
+        if (state.lightsState != 'on') {
             turnOnLights(state.activeLightMode)
         }
     }
@@ -365,7 +375,7 @@ def updateBasedOnMotion(mode) {
             unschedule(warnLights)
 
             // consider activity level
-            def timeout = motionTimeout*state.activityLevel
+            def timeout = motionTimeout*state.motionActivityLevel
             if (warningTimeout == 0) {
                 runIn(timeout, turnOffLights)
             }
@@ -419,13 +429,6 @@ def turnOnLights(mode) {
     if (state.lightsState == 'warn') {
         state.lightsState = 'on'
 
-        // Increase activity level
-        def newActivityLevel = state.activityLevel + 1
-        if(newActivityLevel > modeSettings.maxActivityLevel) {
-            newActivityLevel = modeSettings.maxActivityLevel
-        }
-        state.activityLevel = newActivityLevel
-
         setLevel(lights, state.preWarnLevel)
     }
     else {
@@ -454,7 +457,7 @@ def turnOffLights(mode) {
     unschedule(turnOffLights)
     unschedule(warnLights)
 
-    state.activityLevel = 1
+    state.motionActivityLevel = 0
     state.lightsState = 'off'
 
     lights.off()
@@ -474,6 +477,9 @@ def getSettingsForMode(mode)
     }
 
     switch (mode) {
+        case "Unknown":
+            return ["name": "Unknown", "devices": null, "level": 0, "colorTemperature": 2700, "color": "blue", "byMotion": false, "nightTimeOnly": false, "maxActivityLevel": 1, "timeout": 0]
+            break;
         case "Day":
             return ["name": "Day", "devices": dayLights, "level": dayLevel, "colorTemperature": dayColorTemperature, "color": dayColor, "byMotion": daybyMotion, "nightTimeOnly": dayNightTimeOnly, "maxActivityLevel": dayMaxActivityLevel, "timeout": dayTimeout]
             break;
