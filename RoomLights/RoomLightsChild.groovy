@@ -33,7 +33,7 @@ def mainPage()
 {
     dynamicPage(name: "mainPage", title: "", uninstall: true, install: true) {
         section() {
-            paragraph "Manages Lights in a Room"
+            paragraph "Manages Room by Modes"
         }
 
         section("<b>App Instance:</b>") {
@@ -41,7 +41,7 @@ def mainPage()
         }
 
         section("<b>Motion:</b>") {
-            input "motionSensors", "capability.motionSensor", title: "Sensor(s)", required: true, multiple: true
+            input "motionSensors", "capability.motionSensor", title: "Sensor(s)", required: false, multiple: true
             input "motionTimeout", "number", title: "timeout (Seconds)", description: "0...9999", required: true, defaultValue: 60
         }
 
@@ -78,9 +78,14 @@ def dayModePage()
 
         section("<b>Mode Settings</b>") {
             input "dayMaxActivityLevel", "number", title: "Max Activity Level", description: "1...99", required: true, defaultValue: 5
-            input "daybyMotion", "bool", title: "By Motion", defaultValue: true
-            input "dayNightTimeOnly", "bool", title: "Between Sunset and Sunrise", defaultValue: false
+            input "daybyMotion", "bool", title: "By Motion", required: true, defaultValue: true
+            input "dayNightTimeOnly", "bool", title: "Between Sunset and Sunrise", required: true, defaultValue: false
             input "dayTimeout", "number", title: "Timeout (Minutes)", description: "1...1440", required: true, defaultValue: 0
+        }
+
+        section("<b>Switches</b>") {
+            input "dayOnSwitches", "capability.switch", title: "Switches to Turn On", required: false, multiple: true
+            input "dayOffSwitches", "capability.switch", title: "Switches to Turn On", required: false, multiple: true
         }
     }
 }
@@ -102,9 +107,14 @@ def eveningModePage()
 
         section("<b>Mode Settings</b>") {
             input "eveningMaxActivityLevel", "number", title: "Max Activity Level", description: "1...99", required: true, defaultValue: 5
-            input "eveningbyMotion", "bool", title: "By Motion", defaultValue: true
-            input "eveningNightTimeOnly", "bool", title: "Between Sunset and Sunrise", defaultValue: false
+            input "eveningbyMotion", "bool", title: "By Motion", required: true, defaultValue: true
+            input "eveningNightTimeOnly", "bool", title: "Between Sunset and Sunrise", required: true, defaultValue: false
             input "eveningTimeout", "number", title: "Timeout (Minutes)", description: "1...1440", required: true, defaultValue: 0
+        }
+
+        section("<b>Switches</b>") {
+            input "eveningOnSwitches", "capability.switch", title: "Switches to Turn On", required: false, multiple: true
+            input "eveningOffSwitches", "capability.switch", title: "Switches to Turn On", required: false, multiple: true
         }
     }
 }
@@ -126,9 +136,14 @@ def nightModePage()
 
         section("<b>Mode Settings</b>") {
             input "nightMaxActivityLevel", "number", title: "Max Activity Level", description: "1...99", required: true, defaultValue: 1
-            input "nightbyMotion", "bool", title: "By Motion", defaultValue: true
-            input "nightNightTimeOnly", "bool", title: "Between Sunset and Sunrise", defaultValue: false
+            input "nightbyMotion", "bool", title: "By Motion", required: true, defaultValue: true
+            input "nightNightTimeOnly", "bool", title: "Between Sunset and Sunrise", required: true, defaultValue: false
             input "nightTimeout", "number", title: "Timeout (Minutes)", description: "1...1440", required: true, defaultValue: 0
+        }
+
+        section("<b>Switches</b>") {
+            input "nightOnSwitches", "capability.switch", title: "Switches to Turn On", required: false, multiple: true
+            input "nightOffSwitches", "capability.switch", title: "Switches to Turn On", required: false, multiple: true
         }
     }
 }
@@ -150,9 +165,14 @@ def awayModePage()
 
         section("<b>Mode Settings</b>") { 
             input "awayMaxActivityLevel", "number", title: "Max Activity Level", description: "1...99", required: true, defaultValue: 1        
-            input "awaybyMotion", "bool", title: "By Motion", defaultValue: true
-            input "awayNightTimeOnly", "bool", title: "Between Sunset and Sunrise", defaultValue: false
+            input "awaybyMotion", "bool", title: "By Motion", required: true, defaultValue: true
+            input "awayNightTimeOnly", "bool", title: "Between Sunset and Sunrise", required: true, defaultValue: false
             input "awayTimeout", "number", title: "Timeout (Minutes)", description: "1...1440", required: true, defaultValue: 0
+        }
+
+        section("<b>Switches</b>") {
+            input "awayOnSwitches", "capability.switch", title: "Switches to Turn On", required: false, multiple: true
+            input "awayOffSwitches", "capability.switch", title: "Switches to Turn On", required: false, multiple: true
         }
     }
 }
@@ -179,9 +199,14 @@ def sleepModePage()
 
         section("<b>Mode Settings</b>") {
             input "sleepMaxActivityLevel", "number", title: "Max Activity Level", description: "1...99", required: true, defaultValue: 5
-            input "sleepbyMotion", "bool", title: "By Motion", defaultValue: true
-            input "sleepNightTimeOnly", "bool", title: "Between Sunset and Sunrise", defaultValue: false
+            input "sleepbyMotion", "bool", title: "By Motion", required: true, defaultValue: true
+            input "sleepNightTimeOnly", "bool", title: "Between Sunset and Sunrise", required: true, defaultValue: false
             input "sleepTimeout", "number", title: "Timeout (Minutes)", description: "1...1440", required: true, defaultValue: 0
+        }
+
+        section("<b>Switches</b>") {
+            input "sleepOnSwitches", "capability.switch", title: "Switches to Turn On", required: false, multiple: true
+            input "sleepOffSwitches", "capability.switch", title: "Switches to Turn On", required: false, multiple: true
         }
     }
 }
@@ -193,7 +218,9 @@ def doorModePage()
     dynamicPage(name: "doorModePage", title: "<b>Door Mode</b>") {
         section("<b>Contact Sensor</b>") {
             input "doorSensor", "capability.contactSensor", title: "Door Contact Sensor", required: false, multiple: false
-            input "doorActiveWhenOpened", "bool", title: "Active When Opened", defaultValue: true
+            input "doorDeactiveTimeout", "number", title: "Door Timeout (Minutes)", description: "1...1440", required: true, defaultValue: 300
+            input "doorActiveWhenOpened", "bool", title: "Active When Opened", required: true, defaultValue: true
+            input "doorDeactiveWhenClosed", "bool", title: "Deactive When Closed", required: true, defaultValue: true
         }
 
         section("<b>Lights</b>") {
@@ -207,8 +234,13 @@ def doorModePage()
         }
 
         section("<b>Mode Settings</b>") {
-            input "doorNightTimeOnly", "bool", title: "Between Sunset and Sunrise", defaultValue: false
+            input "doorNightTimeOnly", "bool", title: "Between Sunset and Sunrise", required: true, defaultValue: false
             input "doorTimeout", "number", title: "Timeout (Minutes)", description: "1...1440", required: true, defaultValue: 0
+        }
+
+        section("<b>Switches</b>") {
+            input "doorOnSwitches", "capability.switch", title: "Switches to Turn On", required: false, multiple: true
+            input "doorOffSwitches", "capability.switch", title: "Switches to Turn On", required: false, multiple: true
         }
     }
 }
@@ -227,13 +259,16 @@ def initialize() {
     unschedule()
     unsubscribe()
 
-    state.lightsState = 'off' // 'off', 'on', 'warn'
+    state.modeState = 'off' // 'off', 'on', 'warn'
+    state.activeMode = 'Unknown'
     state.preWarnLevel = 100
     state.motionActive = motionSensors.findAll { it?.currentValue("motion") == 'active' } ? true : false
-    state.activeLightMode = 'Unknown'
     state.motionActivityLevel = 0
+    state.doorLatched = false
 
-    subscribe(motionSensors, "motion", motionHandler)
+    if (motionSensors) {
+        subscribe(motionSensors, "motion", motionHandler)
+    }
 
     if (sleepSwitch) {
         subscribe(sleepSwitch, "switch", sleepHandler)
@@ -251,7 +286,24 @@ def initialize() {
 }
 
 def doorHandler(evt)
+{    
+    def activeDoorState = doorActiveWhenOpened ? "open" : "closed"
+
+    if (doorSensor && doorSensor.currentValue("contact") != activeDoorState && doorDeactiveWhenClosed) {
+        state.doorLatched = false
+    }
+    else if (doorSensor && doorSensor.currentValue("contact") == activeDoorState) {
+        state.doorLatched = true
+    }
+
+    updateActiveModeIfChanged()
+
+    runIn(doorDeactiveTimeout*60, doorUnlatch)
+}
+
+def doorUnlatch()
 {
+    state.doorLatched = false
     updateActiveModeIfChanged()
 }
 
@@ -279,18 +331,18 @@ def turnOffSleepSwitch() {
 }
 
 def sunriseHandler(evt) {
-    def mode = state.activeLightMode
+    def mode = state.activeMode
     def modeSettings = getSettingsForMode(mode)
     if (!modeSettings.byMotion && modeSettings.nightTimeOnly) {
-        turnOffLights(mode)
+        deactivateMode(mode)
     }
 }
 
 def sunsetHandler(evt) {
-    def mode = state.activeLightMode
+    def mode = state.activeMode
     def modeSettings = getSettingsForMode(mode)
     if (!modeSettings.byMotion && modeSettings.nightTimeOnly) {
-        turnOnLights(mode)
+        activateMode(mode)
     }
 }
 
@@ -314,8 +366,7 @@ def motionHandler(evt) {
 }
 
 def getCurrentMode() {
-    def activeDoorState = doorActiveWhenOpened ? "open" : "closed"
-    if (doorSensor && doorSensor.currentValue("contact") == activeDoorState) {
+    if (doorLatched) {
         return "Door"
     }
 
@@ -328,19 +379,19 @@ def getCurrentMode() {
 
 def updateActiveModeIfChanged() {
     def newMode = getCurrentMode()
-    if(state.activeLightMode != newMode) {
-        turnOffLights(state.activeLightMode)
-        state.activeLightMode = newMode
+    if(state.activeMode != newMode) {
+        deactivateMode(state.activeMode)
+        state.activeMode = newMode
 
-        def modeSettings = getSettingsForMode(newMode)
+        def modeSettings = getSettingsForMode(newMode)       
         if (modeSettings.byMotion) {
             updateBasedOnMotion(newMode)
         }
         else if (!modeSettings.nightTimeOnly || (modeSettings.nightTimeOnly && isNightTime())) {
-            turnOnLights(newMode)
+            activateMode(newMode)
 
             if (modeSettings.timeout != 0) {
-                runIn(modeSettings.timeout*60, turnOffLights)
+                runIn(modeSettings.timeout*60, deactivateMode)
             }
         }
     }
@@ -353,7 +404,7 @@ def updateBasedOnMotion(mode) {
     }
 
     if (state.motionActive) {
-        unschedule(turnOffLights)
+        unschedule(deactivateMode)
         unschedule(warnLights)
 
         // Increase activity level
@@ -363,21 +414,21 @@ def updateBasedOnMotion(mode) {
         }
         state.motionActivityLevel = newActivityLevel
 
-        if (state.lightsState != 'on') {
-            turnOnLights(state.activeLightMode)
+        if (state.modeState != 'on') {
+            activateMode(state.activeMode)
         }
     }
     else
     {
-        if (state.lightsState != 'off')
+        if (state.modeState != 'off')
         {
-            unschedule(turnOffLights)
+            unschedule(deactivateMode)
             unschedule(warnLights)
 
             // consider activity level
             def timeout = motionTimeout*state.motionActivityLevel
             if (warningTimeout == 0) {
-                runIn(timeout, turnOffLights)
+                runIn(timeout, deactivateMode)
             }
             else {
                 runIn(timeout, warnLights)
@@ -393,10 +444,10 @@ def warnLights(mode) {
         return
     }
 
-    unschedule(turnOffLights)
+    unschedule(deactivateMode)
     unschedule(warnLights)
 
-    state.lightsState = 'warn'
+    state.modeState = 'warn'
 
     for(light in lights) {
         def level = light.currentValue("level")
@@ -413,26 +464,28 @@ def warnLights(mode) {
         }
     }
 
-    runIn(warningTimeout, turnOffLights)
+    runIn(warningTimeout, deactivateMode)
 }
 
-def turnOnLights(mode) {
+def activateMode(mode) {
     def modeSettings = getSettingsForMode(mode)
     def lights = modeSettings.devices
-    if (lights == null) {
+    def onSwitches = modesSettings.onSwitches
+    def offSwitches = modeSettings.offSwitches
+    if (lights == null && onSwitches == null && offSwitches == null) {
         return
     }
 
-    unschedule(turnOffLights)
+    unschedule(deactivateMode)
     unschedule(warnLights)
 
-    if (state.lightsState == 'warn') {
-        state.lightsState = 'on'
+    if (state.modeState == 'warn') {
+        state.modeState = 'on'
 
         setLevel(lights, state.preWarnLevel)
     }
     else {
-        state.lightsState = 'on'
+        state.modeState = 'on'
 
         lights.on()
 
@@ -444,59 +497,67 @@ def turnOnLights(mode) {
         else {
             setColorTemperature(lights, modeSettings.colorTemperature)
         }
+
+        onSwitches.on()
+        offSwitches.off()
     }
 }
 
-def turnOffLights(mode) {
+def deactivateMode(mode) {
     def modeSettings = getSettingsForMode(mode)
     def lights = modeSettings.devices
-    if (lights == null) {
+    def onSwitches = modesSettings.onSwitches
+    def offSwitches = modeSettings.offSwitches
+    if (lights == null && onSwitches == null && offSwitches == null) {
         return
     }
 
-    unschedule(turnOffLights)
+    unschedule(deactivateMode)
     unschedule(warnLights)
 
     state.motionActivityLevel = 0
-    state.lightsState = 'off'
+    state.modeState = 'off'
 
     lights.off()
+    onSwitches.off()
+    offSwitches.on()
 }
 
 def isNightTime() {
     def sunriseAndSunset = getSunriseAndSunset()
+    def yesterdaySunset = new Date(sunriseAndSunset.sunset.time - (60*60*24*1000))
 
-    return timeOfDayIsBetween(sunriseAndSunset.sunset, sunriseAndSunset.sunrise, new Date(), location.timeZone)
+    return timeOfDayIsBetween(yesterdaySunset, sunriseAndSunset.sunrise, new Date(), location.timeZone)
 }
 
 def getSettingsForMode(mode)
 {
     if(mode == null)
     {
-        mode = state.activeLightMode
+        mode = state.activeMode
     }
 
     switch (mode) {
         case "Unknown":
-            return ["name": "Unknown", "devices": null, "level": 0, "colorTemperature": 2700, "color": "blue", "byMotion": false, "nightTimeOnly": false, "maxActivityLevel": 1, "timeout": 0]
+            return ["name": "Unknown", "devices": null, "level": 0, "colorTemperature": 2700, "color": "blue", "byMotion": false, "nightTimeOnly": false, "maxActivityLevel": 1, "timeout": 0, "OnSwitches" null, "OffSwitches": null]
             break;
         case "Day":
-            return ["name": "Day", "devices": dayLights, "level": dayLevel, "colorTemperature": dayColorTemperature, "color": dayColor, "byMotion": daybyMotion, "nightTimeOnly": dayNightTimeOnly, "maxActivityLevel": dayMaxActivityLevel, "timeout": dayTimeout]
+            return ["name": "Day", "devices": dayLights, "level": dayLevel, "colorTemperature": dayColorTemperature, "color": dayColor, "byMotion": daybyMotion, "nightTimeOnly": dayNightTimeOnly, "maxActivityLevel": dayMaxActivityLevel, "timeout": dayTimeout, "onSwitches" dayOnSwitches, "offSwitches": dayOffSwitches]
             break;
         case "Evening":
-            return ["name": "Evening", "devices": eveningLights, "level": eveningLevel, "colorTemperature": eveningColorTemperature, "color": eveningColor, "byMotion": eveningbyMotion, "nightTimeOnly": eveningNightTimeOnly, "maxActivityLevel": eveningMaxActivityLevel, "timeout": eveningTimeout]
+            return ["name": "Evening", "devices": eveningLights, "level": eveningLevel, "colorTemperature": eveningColorTemperature, "color": eveningColor, "byMotion": eveningbyMotion, "nightTimeOnly": eveningNightTimeOnly, "maxActivityLevel": eveningMaxActivityLevel, "timeout": eveningTimeout, "onSwitches" eveningOnSwitches, "offSwitches": eveningOffSwitches]
             break;
         case "Night":
-            return ["name": "Night", "devices": nightLights, "level": nightLevel, "colorTemperature": nightColorTemperature, "color": nightColor, "byMotion": nightbyMotion, "nightTimeOnly": nightNightTimeOnly, "maxActivityLevel": nightMaxActivityLevel, "timeout": nightTimeout]
+            return ["name": "Night", "devices": nightLights, "level": nightLevel, "colorTemperature": nightColorTemperature, "color": nightColor, "byMotion": nightbyMotion, "nightTimeOnly": nightNightTimeOnly, "maxActivityLevel": nightMaxActivityLevel, "timeout": nightTimeout, "onSwitches" nightOnSwitches, "offSwitches": nightOffSwitches]
             break;
         case "Away":
-            return ["name": "Away", "devices": awayLights, "level": awayLevel, "colorTemperature": awayColorTemperature, "color": awayColor, "byMotion": awaybyMotion, "nightTimeOnly": awayNightTimeOnly, "maxActivityLevel": awayMaxActivityLevel, "timeout": awayTimeout]
+            return ["name": "Away", "devices": awayLights, "level": awayLevel, "colorTemperature": awayColorTemperature, "color": awayColor, "byMotion": awaybyMotion, "nightTimeOnly": awayNightTimeOnly, "maxActivityLevel": awayMaxActivityLevel, "timeout": awayTimeout, "onSwitches" awayOnSwitches, "offSwitches": awayOffSwitches]
             break;
         case "Sleep":
-            return ["name": "Sleep", "devices": sleepLights, "level": sleepLevel, "colorTemperature": sleepColorTemperature, "color": sleepColor, "byMotion": sleepbyMotion, "nightTimeOnly": sleepNightTimeOnly, "maxActivityLevel": sleepMaxActivityLevel, "timeout": sleepTimeout]
+            return ["name": "Sleep", "devices": sleepLights, "level": sleepLevel, "colorTemperature": sleepColorTemperature, "color": sleepColor, "byMotion": sleepbyMotion, "nightTimeOnly": sleepNightTimeOnly, "maxActivityLevel": sleepMaxActivityLevel, "timeout": sleepTimeout, "onSwitches" sleepOnSwitches, "offSwitches": sleepOffSwitches]
             break;
         case "Door":
-            return ["name": "Door", "devices": doorLights, "level": doorLevel, "colorTemperature": doorColorTemperature, "color": doorColor, "byMotion": false, "nightTimeOnly": doorNightTimeOnly, "maxActivityLevel": 1, "timeout": doorTimeout]
+            return ["name": "Door", "devices": doorLights, "level": doorLevel, "colorTemperature": doorColorTemperature, "color": doorColor, "byMotion": false, "nightTimeOnly": doorNightTimeOnly, "maxActivityLevel": 1, "timeout": doorTimeout, "onSwitches" doorOnSwitches, "offSwitches": doorOffSwitches]
             break;
     }
 }
