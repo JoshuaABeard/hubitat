@@ -482,9 +482,9 @@ def warnLights(mode) {
 def activateMode(mode) {
     def modeSettings = getSettingsForMode(mode)
     def lights = modeSettings.devices
-    def onSwitches = modesSettings.onSwitches
+    def onSwitches = modeSettings.onSwitches
     def offSwitches = modeSettings.offSwitches
-    def toggleOnSwitches = modesSettings.toggleOnSwitches
+    def toggleOnSwitches = modeSettings.toggleOnSwitches
     def toggleOffSwitches = modeSettings.toggleOffSwitches
     if (lights == null && onSwitches == null && offSwitches == null && toggleOnSwitches == null && toggleOffSwitches == null) {
         return
@@ -512,21 +512,31 @@ def activateMode(mode) {
             setColorTemperature(lights, modeSettings.colorTemperature)
         }
 
-        onSwitches.on()
-        offSwitches.off()
+        if (onSwitches) {
+            onSwitches.on()
+        }
+
+        if (offSwitches) {
+            offSwitches.off()
+        }
 
         // Toggle Switches
-        toggleOnSwitches.on()
-        toggleOffSwitches.off()
+        if (toggleOnSwitches) {
+            toggleOnSwitches.on()
+        }
+
+        if (toggleOffSwitches) {
+            toggleOffSwitches.off()
+        }
     }
 }
 
 def deactivateMode(mode) {
     def modeSettings = getSettingsForMode(mode)
     def lights = modeSettings.devices
-    def onSwitches = modesSettings.onSwitches
+    def onSwitches = modeSettings.onSwitches
     def offSwitches = modeSettings.offSwitches
-    def toggleOnSwitches = modesSettings.toggleOnSwitches
+    def toggleOnSwitches = modeSettings.toggleOnSwitches
     def toggleOffSwitches = modeSettings.toggleOffSwitches
     if (lights == null && onSwitches == null && offSwitches == null && toggleOnSwitches == null && toggleOffSwitches == null) {
         return
@@ -538,11 +548,18 @@ def deactivateMode(mode) {
     state.motionActivityLevel = 0
     state.modeState = 'off'
 
-    lights.off()
+    if (lights) {
+        lights.off()
+    }
 
     // Toggle Switches
-    toggleOnSwitches.off()
-    toggleOffSwitches.on()
+    if (toggleOnSwitches) {
+        toggleOnSwitches.off()
+    }
+
+    if( toggleOffSwitches) {
+        toggleOffSwitches.on()
+    }
 }
 
 def isNightTime() {
@@ -559,29 +576,32 @@ def getSettingsForMode(mode)
         mode = state.activeMode
     }
 
+    def result = []
     switch (mode) {
         case "Unknown":
-            return ["name": "Unknown", "devices": null, "level": 0, "colorTemperature": 2700, "color": "blue", "byMotion": false, "nightTimeOnly": false, "maxActivityLevel": 1, "timeout": 0, "onSwitches" null, "offSwitches": null, "toggleOnSwitches": null, "toggleOffSwitches": null]
+            result = ["name": "Unknown", "devices": null, "level": 0, "colorTemperature": 2700, "color": "blue", "byMotion": false, "nightTimeOnly": false, "maxActivityLevel": 1, "timeout": 0, "onSwitches": null, "offSwitches": null, "toggleOnSwitches": null, "toggleOffSwitches": null]
             break;
         case "Day":
-            return ["name": "Day", "devices": dayLights, "level": dayLevel, "colorTemperature": dayColorTemperature, "color": dayColor, "byMotion": daybyMotion, "nightTimeOnly": dayNightTimeOnly, "maxActivityLevel": dayMaxActivityLevel, "timeout": dayTimeout, "onSwitches" dayOnSwitches, "offSwitches": dayOffSwitches, "toggleOnSwitches": dayToggleOnSwitches, "toggleOffSwitches": dayToggleOffSwitches]
+            result = ["name": "Day", "devices": dayLights, "level": dayLevel, "colorTemperature": dayColorTemperature, "color": dayColor, "byMotion": daybyMotion, "nightTimeOnly": dayNightTimeOnly, "maxActivityLevel": dayMaxActivityLevel, "timeout": dayTimeout, "onSwitches": dayOnSwitches, "offSwitches": dayOffSwitches, "toggleOnSwitches": dayToggleOnSwitches, "toggleOffSwitches": dayToggleOffSwitches]
             break;
         case "Evening":
-            return ["name": "Evening", "devices": eveningLights, "level": eveningLevel, "colorTemperature": eveningColorTemperature, "color": eveningColor, "byMotion": eveningbyMotion, "nightTimeOnly": eveningNightTimeOnly, "maxActivityLevel": eveningMaxActivityLevel, "timeout": eveningTimeout, "onSwitches" eveningOnSwitches, "offSwitches": eveningOffSwitches, "toggleOnSwitches": eveningToggleOnSwitches, "toggleOffSwitches": eveningToggleOffSwitches]
+            result = ["name": "Evening", "devices": eveningLights, "level": eveningLevel, "colorTemperature": eveningColorTemperature, "color": eveningColor, "byMotion": eveningbyMotion, "nightTimeOnly": eveningNightTimeOnly, "maxActivityLevel": eveningMaxActivityLevel, "timeout": eveningTimeout, "onSwitches": eveningOnSwitches, "offSwitches": eveningOffSwitches, "toggleOnSwitches": eveningToggleOnSwitches, "toggleOffSwitches": eveningToggleOffSwitches]
             break;
         case "Night":
-            return ["name": "Night", "devices": nightLights, "level": nightLevel, "colorTemperature": nightColorTemperature, "color": nightColor, "byMotion": nightbyMotion, "nightTimeOnly": nightNightTimeOnly, "maxActivityLevel": nightMaxActivityLevel, "timeout": nightTimeout, "onSwitches" nightOnSwitches, "offSwitches": nightOffSwitches, "toggleOnSwitches": nightToggleOnSwitches, "toggleOffSwitches": nightToggleOffSwitches]
+            result = ["name": "Night", "devices": nightLights, "level": nightLevel, "colorTemperature": nightColorTemperature, "color": nightColor, "byMotion": nightbyMotion, "nightTimeOnly": nightNightTimeOnly, "maxActivityLevel": nightMaxActivityLevel, "timeout": nightTimeout, "onSwitches": nightOnSwitches, "offSwitches": nightOffSwitches, "toggleOnSwitches": nightToggleOnSwitches, "toggleOffSwitches": nightToggleOffSwitches]
             break;
         case "Away":
-            return ["name": "Away", "devices": awayLights, "level": awayLevel, "colorTemperature": awayColorTemperature, "color": awayColor, "byMotion": awaybyMotion, "nightTimeOnly": awayNightTimeOnly, "maxActivityLevel": awayMaxActivityLevel, "timeout": awayTimeout, "onSwitches" awayOnSwitches, "offSwitches": awayOffSwitches, "toggleOnSwitches": awayToggleOnSwitches, "toggleOffSwitches": awayToggleOffSwitches]
+            result = ["name": "Away", "devices": awayLights, "level": awayLevel, "colorTemperature": awayColorTemperature, "color": awayColor, "byMotion": awaybyMotion, "nightTimeOnly": awayNightTimeOnly, "maxActivityLevel": awayMaxActivityLevel, "timeout": awayTimeout, "onSwitches": awayOnSwitches, "offSwitches": awayOffSwitches, "toggleOnSwitches": awayToggleOnSwitches, "toggleOffSwitches": awayToggleOffSwitches]
             break;
         case "Sleep":
-            return ["name": "Sleep", "devices": sleepLights, "level": sleepLevel, "colorTemperature": sleepColorTemperature, "color": sleepColor, "byMotion": sleepbyMotion, "nightTimeOnly": sleepNightTimeOnly, "maxActivityLevel": sleepMaxActivityLevel, "timeout": sleepTimeout, "onSwitches" sleepOnSwitches, "offSwitches": sleepOffSwitches, "toggleOnSwitches": sleepToggleOnSwitches, "toggleOffSwitches": sleepToggleOffSwitches]
+            result = ["name": "Sleep", "devices": sleepLights, "level": sleepLevel, "colorTemperature": sleepColorTemperature, "color": sleepColor, "byMotion": sleepbyMotion, "nightTimeOnly": sleepNightTimeOnly, "maxActivityLevel": sleepMaxActivityLevel, "timeout": sleepTimeout, "onSwitches": sleepOnSwitches, "offSwitches": sleepOffSwitches, "toggleOnSwitches": sleepToggleOnSwitches, "toggleOffSwitches": sleepToggleOffSwitches]
             break;
         case "Door":
-            return ["name": "Door", "devices": doorLights, "level": doorLevel, "colorTemperature": doorColorTemperature, "color": doorColor, "byMotion": false, "nightTimeOnly": doorNightTimeOnly, "maxActivityLevel": 1, "timeout": doorTimeout, "onSwitches" doorOnSwitches, "offSwitches": doorOffSwitches, "toggleOnSwitches": doorToggleOnSwitches, "toggleOffSwitches": doorToggleOffSwitches]
+            result = ["name": "Door", "devices": doorLights, "level": doorLevel, "colorTemperature": doorColorTemperature, "color": doorColor, "byMotion": false, "nightTimeOnly": doorNightTimeOnly, "maxActivityLevel": 1, "timeout": doorTimeout, "onSwitches": doorOnSwitches, "offSwitches": doorOffSwitches, "toggleOnSwitches": doorToggleOnSwitches, "toggleOffSwitches": doorToggleOffSwitches]
             break;
     }
+
+    return result
 }
 
 def setLevel(devices, newLevel) {
